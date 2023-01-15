@@ -49,7 +49,7 @@ function getHistory() {
 	});
 };
 
-//Grab the main 'Today' card body.
+
 var cardTodayBody = $('.cardBodyToday')
 //Applies the weather data to the today card and then launches the five day forecast
 function getWeatherToday() {
@@ -173,7 +173,7 @@ function getFiveDayForecast() {
 	});
 };
 
-//Allows for the example data to load for Denver
+
 function initLoad() {
 
 	var cityHistStore = JSON.parse(localStorage.getItem('city'));
