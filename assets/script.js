@@ -1,184 +1,153 @@
-var key = '3515eb9c90ae5a3e5fc4c071e8510f74';
-var city = "Stuart"
-
-//Grabs the current time and date
-var date = moment().format('dddd, MMMM Do YYYY');
-var dateTime = moment().format('YYYY-MM-DD HH:MM:SS')
-
-var cityHist = [];
+// Store the API key in a variable
+const apiKey = '90a3b1c089d56935bb3d43cf179e1637';
+// Store the city name in a variable
+const city = 'Stuart';
+// Get the current date and format it as a string
+const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
 
-//Grabs the card for today
-var TodaysCards = $('.cardBodyToday')
-function getWeatherToday() {
-	var getUrlCurrent = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${key}`;
-
-	$(TodaysCards).empty();
-
+// Define a function that retrieves weather data for today's forecast for a given city
+function getWeatherToday(city) {
+	// Get a reference to the HTML element that will display today's forecast
+	const todaysCard = document.getElementById('cardBodyToday');
+	// Make an AJAX request to the OpenWeatherMap API to retrieve current weather data for the specified city
 	$.ajax({
-		url: getUrlCurrent,
+		url: `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${apiKey}`,
 		method: 'GET',
 	}).then(function (response) {
-		$('.cardTodayCityName').text(response.name);
-		$('.cardTodayDate').text(date);
-		$('.icons').attr('src', `https://openweathermap.org/img/wn/${response.weather[0].icon}@2x.png`);
-		// Temperature
-		var active = $('<p>').text(`Temperature: ${response.main.temp} °F`);
-		TodaysCards.append(active);
-		//Wind Speed
-		var activeWind = $('<p>').text(`Wind Speed: ${response.wind.speed} MPH`);
-		TodaysCards.append(activeWind);
-		//Humidity
-		var activeHumid = $('<p>').text(`Humidity: ${response.main.humidity} %`);
-		TodaysCards.append(activeHumid);
-		//Feels Like
-		var activeTemp = $('<p>').text(`Feels Like: ${response.main.feels_like} °F`);
-		TodaysCards.append(activeTemp);
-		var cityLon = response.coord.lon;
-		var cityLat = response.coord.lat;
+		// Update the HTML element that displays the city name with the name of the city from the API response
+		document.getElementById('cardTodayCityName').innerHTML = response.name;
+		// Update the HTML element that displays the weather icon with the icon URL from the API response
+		document.getElementById("currIcon").src = "https://openweathermap.org/img/wn/"+response.weather[0].icon+".png";
+		// Update the HTML element that displays the current date with the formatted date string
+		document.getElementById('cardTodayDate').innerHTML = date;
+		todaysCard.innerHTML = '<p>Temperature: '+response.main.temp+' °F</p><p>Wind Speed: '+response.wind.speed+' MPH</p><p>Humidity: '+response.main.humidity+' %</p><p>Feels Like: '+response.main.feels_like+' °F</p>';
+		const longitude = response.coord.lon;
+		var latitude = response.coord.lat;
 
-		var getUrlUVindex = `https://api.openweathermap.org/data/2.5/onecall?lat=${cityLat}&lon=${cityLon}&exclude=hourly,daily,minutely&appid=${key}`;
-
+		var output = '';
+		// Make another AJAX request to the OpenWeatherMap API to retrieve additional weather data for the specified latitude and longitude
 		$.ajax({
-			url: getUrlUVindex,
+			url: `https://api.openweathermap.org/data/2.5/onecall?lat=${latitude}&lon=${longitude}&exclude=hourly,daily,minutely&appid=${apiKey}`,
 			method: 'GET',
 		}).then(function (response) {
-			var activeUVindex = $('<p>').text(`UV Index: `);
-			var UVindexSpan = $('<span>').text(response.current.UVindex);
-			var UVindex = response.current.UVindex;
-			activeUVindex.append(UVindexSpan);
-			TodaysCards.append(activeUVindex);
-			if (UVindex >= 0 && UVindex <= 2) {
-				UVindexSpan.attr('class', 'green');
-			} else if (UVindex > 2 && UVindex <= 5) {
-				UVindexSpan.attr("class", "yellow")
-			} else if (UVindex > 5 && UVindex <= 7) {
-				UVindexSpan.attr("class", "orange")
-			} else if (UVindex > 7 && UVindex <= 10) {
-				UVindexSpan.attr("class", "red")
+			var uvi = response.current.uvi;
+			if (uvi >= 0 && uvi <= 2) {
+				output += '<p>UV Index: <span class="green">'+uvi.toString()+'</span></p>';
+			} else if (uvi > 2 && uvi <= 5) {
+				output += '<p>UV Index: <span class="yellow">'+uvi.toString()+'</span></p>';
+			} else if (uvi > 5 && uvi <= 7) {
+				output += '<p>UV Index: <span class="orange">'+uvi.toString()+'</span></p>';
+			} else if (uvi > 7 && uvi <= 10) {
+				output += '<p>UV Index: <span class="red">'+uvi.toString()+'</span></p>';
 			} else {
-				UVindexSpan.attr("class", "purple")
+				output += '<p>UV Index: <span class="purple">'+uvi.toString()+'</span></p>';
 			}
+			todaysCard.innerHTML += output;
 		});
+		
 	});
-	getFiveDayForecast();
-};
-
-var fiveForecasttel = $('.fiveForecast');
-
-function getFiveDayForecast() {
-	var getUrlFiveDay = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=imperial&appid=${key}`;
-
+	// calling getFiveDayForecast function
+	getFiveDayForecast(city);
+}
+// Function to get five-day forecast for a city
+function getFiveDayForecast(city) {
+	// AJAX request to OpenWeatherMap API to get five-day forecast
 	$.ajax({
-		url: getUrlFiveDay,
+		url: `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=imperial&appid=${apiKey}`,
 		method: 'GET',
 	}).then(function (response) {
-		var fiveDayArray = response.list;
-		var myWeather = [];
-		//Makes project easier to read
-		$.each(fiveDayArray, function (index, value) {
-			testObj = {
-				date: value.dt_txt.split(' ')[0],
-				time: value.dt_txt.split(' ')[1],
-				temp: value.main.temp,
-				feels_like: value.main.feels_like,
-				icon: value.weather[0].icon,
-				humidity: value.main.humidity
-			}
-
-			if (value.dt_txt.split(' ')[1] === "12:00:00") {
-				myWeather.push(testObj);
-			}
-		})
-		//Puts cars on screen
-		for (let i = 0; i < myWeather.length; i++) {
-
-			var divElCard = $('<div>');
-			divElCard.attr('class', 'card text-white bg-primary mb-3 cardOne');
-			divElCard.attr('style', 'max-width: 200px;');
-			fiveForecasttel.append(divElCard);
-
-			var divElHeader = $('<div>');
-			divElHeader.attr('class', 'card-header')
-			var m = moment(`${myWeather[i].date}`).format('MM-DD-YYYY');
-			divElHeader.text(m);
-			divElCard.append(divElHeader)
-
-			var divElBody = $('<div>');
-			divElBody.attr('class', 'card-body');
-			divElCard.append(divElBody);
-
-			var divElIcon = $('<img>');
-			divElIcon.attr('class', 'icons');
-			divElIcon.attr('src', `https://openweathermap.org/img/wn/${myWeather[i].icon}@2x.png`);
-			divElBody.append(divElIcon);
-
-			//Humidity
-			var activeHumid = $('<p>').text(`Humidity: ${myWeather[i].humidity} %`);
-			divElBody.append(activeHumid);
+		// An array to hold the data for each day's forecast
+		var dataArray = [];
+		// Loop through each item in the response to extract the data
+		response.list.forEach(function(value) {
+			// Create an object with the desired properties for each item
+		  resObject = {
+		    date: value.dt_txt.split(' ')[0],
+		    time: value.dt_txt.split(' ')[1],
+		    temp: value.main.temp,
+		    feels_like: value.main.feels_like,
+		    icon: value.weather[0].icon,
+		    humidity: value.main.humidity
+		  };
+		   // If the time is 12:00:00, add the object to the dataArray
+		  if (value.dt_txt.split(' ')[1] === "12:00:00") {
+		    dataArray.push(resObject);
+		  }
+		});
+		// Get the DOM element for the five-day forecas
+		var fiveForecast = document.getElementById('fiveForecast');
+		var output = '';
+		// Loop through the dataArray to generate the HTML for each day's forecast
+		for (let i = 0; i < dataArray.length; i++) {
+			// Add the HTML for a card for the day's forecast
+			output += '<div class="card text-white bg-primary mb-3 cardOne" style="max-width: 200px;">';
+			output += '<div class="card-header">'+dataArray[i].date.toString()+'</div>';
+			output += '<div class="card-body">';
+			output += '<img class="icons" id="currIcon" src="https://openweathermap.org/img/wn/'+dataArray[i].icon+'@2x.png" />';
+			output += '<p>Humidity: '+dataArray[i].humidity.toString()+' %</p>';
+			output += '<p>Feels Like: '+dataArray[i].feels_like.toString()+' °F</p>';
+			output += '<p>Temperature: '+dataArray[i].temp.toString()+' °F</p></div></div>';
 			
-			//Feels Like
-			var activeFeel = $('<p>').text(`Feels Like: ${myWeather[i].feels_like} °F`);
-			divElBody.append(activeFeel);
-		
-			//Temp
-			var activeTemp = $('<p>').text(`Temperature: ${myWeather[i].temp} °F`);
-			divElBody.append(activeTemp);
 		}
+		// Set the innerHTML of the fiveForecast element to the generated HTML
+		fiveForecast.innerHTML = output;
+		
 	});
-};
 
-//Saves history of search bar
-$('.search').on("click", function (event) {
-	event.preventDefault();
-	city = $(this).parent('.btnPar').siblings('.textVal').val().trim();
-	if (city === "") {
-		return;
-	};
-	cityHist.push(city);
-
-	localStorage.setItem('city', JSON.stringify(cityHist));
-	fiveForecasttel.empty();
-	getHistory();
-	getWeatherToday();
-});
-
-//Creates buttons based on saved data
-var conthistorytel = $('.cityHist');
-function getHistory() {
-	conthistorytel.empty();
-
-	for (let i = 0; i < cityHist.length; i++) {
-
-		var rowtel = $('<row>');
-		var btntel = $('<button>').text(`${cityHist[i]}`)
-
-		rowtel.addClass('row histBtnRow');
-		btntel.addClass('btn btn-outline-secondary histBtn');
-		btntel.attr('type', 'button');
-
-		conthistorytel.prepend(rowtel);
-		rowtel.append(btntel);
-	} if (!city) {
-		return;
+}
+// Define a function to handle city search
+function searchCity(){
+	// Get user input from search box
+	const userInput = document.getElementById('searchInput').value;
+	// Initialize an empty array for storing city history
+	var searchedArray = [];
+	// Get the search history from local storage and parse it as an array
+	var localstr = JSON.parse(localStorage.getItem('city'));
+	if (localstr !== null) {
+		searchedArray = JSON.parse(localStorage.getItem('city'));
 	}
-	$('.histBtn').on("click", function (event) {
-		event.preventDefault();
-		city = $(this).text();
-		fiveForecasttel.empty();
-		getWeatherToday();
-	});
-};
+	
+	searchedArray.push(userInput);
+	// Store the updated search history in local storage
+	localStorage.setItem('city', JSON.stringify(searchedArray));
+	// Call a function to display search history buttons
+	loadData(userInput, searchedArray);
+}
+// Define a function to display search history buttons
+function displayHistory(cityHistArray){
+	// Get the div element to display search history
+	var histDiv = document.getElementById('cityHist');
+	var output = '';
+	// Reverse the order of the search history array so that the most recent search appears first
+	cityHistArray = cityHistArray.reverse();
+	// Loop through the search history array and create a button for each city
+	for (let i = 0; i < cityHistArray.length; i++) {
 
-function initLoad() {
-
-	var cityHistStore = JSON.parse(localStorage.getItem('city'));
-
-	if (cityHistStore !== null) {
-		cityHist = cityHistStore
+		output += '<button class="btn btn-outline-secondary" onclick="histBtn(\''+cityHistArray[i]+'\');" style="margin-bottom: 10px;">'+cityHistArray[i]+'</button><br>';
 	}
-	getHistory();
-	getWeatherToday();
-};
+	// Insert the search history buttons into the div element
+	histDiv.innerHTML = output;
+	
 
-initLoad();
+}
+// Define a function to handle search history button clicks
+function histBtn(city){
+	// Call the function to display current weather for the selected city
+	getWeatherToday(city);
+
+}
+// Define a function to load search history and call functions to display it and current weather for the last searched city
+function loadData(city, searchedArray){
+	// If the search history exists, call the function to display it
+	if (searchedArray !== null) {
+		displayHistory(searchedArray);
+	}
+	// Call the function to display current weather for the last searched city
+	getWeatherToday(city);
+}
+
+// Get the search history from local storage and parse it as an array
+var searchedArray = JSON.parse(localStorage.getItem('city'));
+// Call a function to load search history and call functions to display it and current weather for the last searched city
+loadData(city, searchedArray);
